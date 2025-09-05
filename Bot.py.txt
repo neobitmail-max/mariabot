@@ -1,0 +1,39 @@
+import random
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+# --- LISTA DE RESPUESTAS HUMORÍSTICAS ---
+RESPUESTAS = [
+    "🤪 ¿Eso lo dices en serio o estabas mirando un tutorial de YouTube?",
+    "😂 Buena esa, pero mi abuela responde más rápido que tú.",
+    "😏 ¿Tú también quieres ser influencer de sillas gamer?",
+    "🤯 Eso no lo entendí, pero suena a poema existencial.",
+    "🐸 Croac... digo, sí, claro.",
+    "🙃 Si te digo la verdad, no tengo ni idea, pero suena bonito.",
+    "💩 Esa pregunta huele rara, mejor la ignoramos.",
+    "⚡ ¡Respuesta random activada! 42."
+]
+
+# 👇 Aquí va tu token de BotFather
+TOKEN = "8344598732:AAGTwLecfJnvawyUYWiOy-4QkzZuWUgNsVI"
+
+# --- MANEJADORES ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("¡Hola! Soy el bot de parodia 🤖, dime algo y te contesto a lo loco.")
+
+async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    respuesta = random.choice(RESPUESTAS)
+    await update.message.reply_text(respuesta)
+
+# --- MAIN ---
+def main():
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, responder))
+
+    print("✅ Bot en marcha...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
