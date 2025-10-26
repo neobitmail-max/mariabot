@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neobit Bootcamp: Desafío de Seguridad en las Comunicaciones</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --terminal-bg: #050505;
+      --terminal-text: #e7f8e6;
+      --accent: #18ff6d;
+      --danger: #ff2d55;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Fira Code", "Source Code Pro", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: radial-gradient(circle at top left, rgba(24, 255, 109, 0.35), transparent 40%),
+        radial-gradient(circle at bottom right, rgba(255, 45, 85, 0.25), transparent 45%),
+        var(--terminal-bg);
+      color: var(--terminal-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1rem, 3vw, 2.5rem);
+    }
+
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0px,
+          rgba(0, 0, 0, 0) 2px,
+          rgba(0, 0, 0, 0.08) 4px
+        ),
+        radial-gradient(circle at center, rgba(24, 255, 109, 0.1), transparent 55%);
+      mix-blend-mode: screen;
+      opacity: 0.6;
+      animation: flicker 4s infinite alternate ease-in-out;
+    }
+
+    @keyframes flicker {
+      0%, 100% {
+        opacity: 0.5;
+      }
+      50% {
+        opacity: 0.65;
+      }
+    }
+
+    .terminal-wrapper {
+      width: min(960px, 100%);
+      background: rgba(0, 0, 0, 0.88);
+      border: 2px solid rgba(24, 255, 109, 0.35);
+      border-radius: 18px;
+      box-shadow: 0 0 32px rgba(24, 255, 109, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.2rem;
+      background: linear-gradient(145deg, rgba(0, 0, 0, 0.95), rgba(18, 40, 24, 0.75));
+      border-bottom: 1px solid rgba(24, 255, 109, 0.25);
+      position: relative;
+    }
+
+    .glitch-title {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      position: relative;
+    }
+
+    .glitch-title::before,
+    .glitch-title::after {
+      content: attr(data-text);
+      position: absolute;
+      inset: 0;
+      mix-blend-mode: screen;
+      animation: glitch 3s infinite;
+    }
+
+    .glitch-title::before {
+      color: var(--danger);
+      clip-path: inset(0 0 60% 0);
+      animation-delay: -0.7s;
+    }
+
+    .glitch-title::after {
+      color: var(--accent);
+      clip-path: inset(40% 0 0 0);
+    }
+
+    @keyframes glitch {
+      0% {
+        transform: translate(0);
+      }
+      20% {
+        transform: translate(2px, -1px);
+      }
+      40% {
+        transform: translate(-2px, 1px);
+      }
+      60% {
+        transform: translate(3px, 2px);
+      }
+      80% {
+        transform: translate(-3px, -2px);
+      }
+      100% {
+        transform: translate(0);
+      }
+    }
+
+    .status-leds {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .led {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(24, 255, 109, 0.3);
+      box-shadow: 0 0 12px rgba(24, 255, 109, 0.45);
+      animation: pulse 2.4s infinite ease-in-out;
+    }
+
+    .led.alert {
+      background: rgba(255, 45, 85, 0.5);
+      box-shadow: 0 0 14px rgba(255, 45, 85, 0.5);
+      animation-delay: -1.2s;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.4;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    #terminal {
+      height: min(70vh, 540px);
+      padding: clamp(1rem, 2vw, 1.5rem);
+      overflow-y: auto;
+      font-size: clamp(0.88rem, 2vw, 1.02rem);
+      line-height: 1.6;
+    }
+
+    .line {
+      margin: 0.3rem 0;
+      white-space: pre-wrap;
+    }
+
+    .line::before {
+      content: ">";
+      color: rgba(24, 255, 109, 0.75);
+      margin-right: 0.6rem;
+    }
+
+    .system-line::before {
+      content: "#";
+      color: rgba(255, 45, 85, 0.75);
+    }
+
+    .hint-line::before {
+      content: "~";
+      color: rgba(24, 255, 109, 0.6);
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    .controls {
+      border-top: 1px solid rgba(24, 255, 109, 0.2);
+      padding: 1rem 1.5rem 1.5rem;
+      background: linear-gradient(180deg, rgba(5, 5, 5, 0.92), rgba(5, 5, 5, 0.75));
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .option-btn {
+      border: 1px solid rgba(24, 255, 109, 0.45);
+      background: transparent;
+      color: var(--terminal-text);
+      padding: 0.65rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-btn:hover,
+    .option-btn:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 18px rgba(24, 255, 109, 0.2);
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .option-btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(24, 255, 109, 0.2), transparent 55%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .option-btn:hover::after {
+      opacity: 1;
+    }
+
+    .toggle-btn {
+      border: 1px solid rgba(255, 45, 85, 0.6);
+      background: rgba(255, 45, 85, 0.08);
+      color: var(--terminal-text);
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .toggle-btn:hover,
+    .toggle-btn:focus-visible {
+      border-color: var(--danger);
+      box-shadow: 0 8px 18px rgba(255, 45, 85, 0.25);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .toggle-btn[aria-pressed="true"] {
+      background: rgba(255, 45, 85, 0.2);
+      box-shadow: inset 0 0 18px rgba(255, 45, 85, 0.25);
+    }
+
+    .score {
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(231, 248, 230, 0.85);
+    }
+
+    .key-hint {
+      font-size: 0.8rem;
+      color: rgba(231, 248, 230, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    .progress-bar {
+      flex: 1 1 100%;
+      height: 6px;
+      background: rgba(231, 248, 230, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress {
+      position: absolute;
+      inset: 0;
+      width: 0;
+      background: linear-gradient(90deg, rgba(24, 255, 109, 0.8), rgba(255, 45, 85, 0.8));
+      transition: width 0.6s ease;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      .terminal-header {
+        flex-direction: column;
+        gap: 0.6rem;
+        align-items: flex-start;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .options {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .option-btn {
+        width: 100%;
+        text-align: center;
+      }
+
+      .toggle-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal-wrapper" role="application" aria-live="polite">
+    <div class="terminal-header">
+      <div class="glitch-title" data-text="Neobit Bootcamp">
+        Neobit Bootcamp
+      </div>
+      <div class="status-leds" aria-hidden="true">
+        <span class="led"></span>
+        <span class="led alert"></span>
+        <span class="led"></span>
+      </div>
+    </div>
+    <div id="terminal" tabindex="0" aria-label="Terminal interactiva del quiz"></div>
+    <div class="controls">
+      <div class="options" id="optionButtons"></div>
+      <div class="score" id="scoreDisplay">Puntuación: 0</div>
+      <button class="toggle-btn" id="ambientToggle" type="button" aria-pressed="false">Activar ambiente</button>
+      <div class="key-hint">Usa las teclas 1-3 o pulsa los botones.</div>
+      <div class="progress-bar">
+        <div class="progress" id="progress"></div>
+      </div>
+    </div>
+  </div>
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <script>
+    const terminal = document.getElementById("terminal");
+    const optionButtons = document.getElementById("optionButtons");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const progressBar = document.getElementById("progress");
+    const ambientToggle = document.getElementById("ambientToggle");
+
+    const typeSpeed = 22;
+    let currentQuestion = 0;
+    let score = 0;
+    let acceptingAnswers = false;
+
+    const questions = [
+      {
+        level: "Briefing 01",
+        question: "¿Cuál es el objetivo principal del cifrado en las comunicaciones?",
+        options: [
+          "Garantizar confidencialidad para que solo el destinatario lea el mensaje",
+          "Acelerar la transmisión de datos en redes públicas",
+          "Añadir redundancia para detectar errores de transmisión"
+        ],
+        answer: 0,
+        fact: "El cifrado protege la privacidad del mensaje al convertirlo en texto ininteligible para terceros."
+      },
+      {
+        level: "Briefing 02",
+        question: "¿Qué protocolo se utiliza para asegurar la web moderna mediante certificados digitales?",
+        options: ["FTP", "HTTPS", "SMTP"],
+        answer: 1,
+        fact: "HTTPS combina HTTP con TLS/SSL para cifrar las sesiones y autenticar servidores."
+      },
+      {
+        level: "Briefing 03",
+        question: "¿Qué significa el principio de 'Zero Trust' en seguridad?",
+        options: [
+          "Confiar en todos los dispositivos internos",
+          "No confiar en nada y verificar siempre",
+          "Dar acceso total tras la autenticación inicial"
+        ],
+        answer: 1,
+        fact: "Zero Trust asume que la red ya está comprometida y obliga a verificar continuamente cada acceso."
+      },
+      {
+        level: "Briefing 04",
+        question: "¿Cuál de estos factores NO forma parte de la autenticación multifactor (MFA)?",
+        options: ["Algo que sabes", "Algo que olvidas", "Algo que eres"],
+        answer: 1,
+        fact: "MFA combina factores como contraseñas (saber), tokens (tener) y biometría (ser)."
+      },
+      {
+        level: "Briefing 05",
+        question: "¿Qué herramienta convierte un mensaje claro en un mensaje cifrado?",
+        options: ["Algoritmo de cifrado", "Hash MD5", "Firewall"],
+        answer: 0,
+        fact: "Los algoritmos de cifrado como AES o ChaCha20 transforman el texto plano en texto cifrado."
+      },
+      {
+        level: "Briefing 06",
+        question: "¿Por qué es importante el uso de certificados válidos en TLS?",
+        options: [
+          "Para evitar ataques de intermediario (MitM)",
+          "Para mejorar la velocidad de descarga",
+          "Para reducir el uso de CPU en el servidor"
+        ],
+        answer: 0,
+        fact: "Los certificados firmados por una CA confiable permiten verificar la identidad del servidor y evitan suplantaciones."
+      },
+      {
+        level: "Briefing 07",
+        question: "¿Qué tipo de cifrado usa la misma clave para cifrar y descifrar?",
+        options: ["Asimétrico", "Simétrico", "Homomórfico"],
+        answer: 1,
+        fact: "En el cifrado simétrico, como AES, la misma clave se usa en ambos sentidos."
+      },
+      {
+        level: "Briefing 08",
+        question: "¿Qué representa el término 'forward secrecy' en TLS?",
+        options: [
+          "Capacidad de recuperar mensajes antiguos",
+          "Proteger sesiones pasadas aunque se filtre la clave a futuro",
+          "Compartir claves de forma pública"
+        ],
+        answer: 1,
+        fact: "La forward secrecy asegura que las claves comprometidas hoy no sirven para descifrar conversaciones previas."
+      },
+      {
+        level: "Briefing 09",
+        question: "¿Qué técnica protege mensajes al dividirlos en partes y enviarlas por rutas distintas?",
+        options: ["Tunneling", "Sharding de mensajes", "Esteganografía"],
+        answer: 1,
+        fact: "Fragmentar mensajes y enviarlos por rutas variadas reduce el riesgo de intercepción total."
+      },
+      {
+        level: "Briefing 10",
+        question: "¿Cuál es un ejemplo de canal seguro para intercambio de claves asimétricas?",
+        options: ["Correo sin cifrar", "Registro público de claves", "Chat sin autenticación"],
+        answer: 1,
+        fact: "Los registros públicos autenticados, como Key Transparency, ayudan a verificar claves sin exponerlas."
+      },
+      {
+        level: "Briefing 11",
+        question: "¿Qué estándar define el cifrado de correo electrónico con certificados?",
+        options: ["S/MIME", "POP3", "ICMP"],
+        answer: 0,
+        fact: "S/MIME usa certificados X.509 para firmar y cifrar correos corporativos."
+      },
+      {
+        level: "Briefing 12",
+        question: "¿Qué tipo de ataque intenta modificar datos en tránsito sin ser detectado?",
+        options: ["Man-in-the-Middle", "Denegación de servicio", "Phishing"],
+        answer: 0,
+        fact: "Un atacante MitM se interpone entre dos interlocutores para leer y modificar mensajes."
+      },
+      {
+        level: "Briefing 13",
+        question: "¿Qué herramienta permite ver certificados de una web desde la terminal?",
+        options: ["curl -I", "openssl s_client", "ping"],
+        answer: 1,
+        fact: "openssl s_client -connect dominio:443 muestra detalles del certificado TLS negociado."
+      },
+      {
+        level: "Briefing 14",
+        question: "¿Qué recomendación es clave al gestionar contraseñas?",
+        options: [
+          "Reutilizar claves para recordarlas",
+          "Usar gestores que generen contraseñas fuertes",
+          "Compartirlas por correo"
+        ],
+        answer: 1,
+        fact: "Los gestores de contraseñas crean y almacenan contraseñas únicas y robustas para cada servicio."
+      },
+      {
+        level: "Briefing 15",
+        question: "¿Qué es un 'air gap'?",
+        options: [
+          "Una técnica para inyectar malware",
+          "Un aislamiento físico entre redes para mayor seguridad",
+          "Un protocolo de cifrado cuántico"
+        ],
+        answer: 1,
+        fact: "Un air gap separa físicamente sistemas sensibles de redes inseguras, reduciendo vías de ataque."
+      }
+    ];
+
+    const introMessages = [
+      "Inicializando consola segura...",
+      "Estableciendo canal cifrado cuántico de entrenamiento...",
+      "Cargando misión: Seguridad en las Comunicaciones // Nivel Rookie",
+      "Advertencia: Cada briefing aumentará el desafío. Mantente alerta."
+    ];
+
+    function scrollToBottom() {
+      terminal.scrollTo({ top: terminal.scrollHeight, behavior: "smooth" });
+    }
+
+    function typeLine(text, cssClass = "") {
+      return new Promise((resolve) => {
+        const line = document.createElement("p");
+        line.className = "line";
+        if (cssClass) {
+          cssClass.split(" ").forEach((cls) => line.classList.add(cls));
+        }
+        terminal.appendChild(line);
+
+        let index = 0;
+        const interval = setInterval(() => {
+          line.textContent = text.slice(0, index);
+          index++;
+          scrollToBottom();
+          if (index > text.length) {
+            clearInterval(interval);
+            resolve(line);
+          }
+        }, typeSpeed);
+      });
+    }
+
+    function updateScoreDisplay() {
+      scoreDisplay.textContent = `Puntuación: ${score}`;
+    }
+
+    function updateProgressBar() {
+      const percent = ((currentQuestion) / questions.length) * 100;
+      progressBar.style.width = `${percent}%`;
+    }
+
+    function clearOptions() {
+      optionButtons.innerHTML = "";
+    }
+
+    function renderOptions(options) {
+      clearOptions();
+      options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.className = "option-btn";
+        button.textContent = `${index + 1}. ${option}`;
+        button.dataset.index = index;
+        button.addEventListener("click", () => handleAnswer(index));
+        optionButtons.appendChild(button);
+      });
+    }
+
+    function handleAnswer(selectedIndex) {
+      if (!acceptingAnswers) return;
+      acceptingAnswers = false;
+      const question = questions[currentQuestion];
+      const correct = selectedIndex === question.answer;
+
+      const tone = correct ? 880 : 220;
+      playBeep(tone, correct ? 0.25 : 0.35);
+
+      if (correct) {
+        score += 10;
+        updateScoreDisplay();
+        typeLine(`✔ Respuesta correcta. ${question.fact}`, "accent").then(nextStep);
+      } else {
+        typeLine(`✖ Respuesta incorrecta. ${question.fact}`, "danger").then(nextStep);
+      }
+    }
+
+    function nextStep() {
+      currentQuestion++;
+      updateProgressBar();
+      if (currentQuestion < questions.length) {
+        setTimeout(() => presentQuestion(), 500);
+      } else {
+        finalizeMission();
+      }
+    }
+
+    async function presentQuestion() {
+      const question = questions[currentQuestion];
+      await typeLine(`${question.level} // Acceso autorizado`, "system-line");
+      await typeLine(question.question);
+      for (const [index, option] of question.options.entries()) {
+        await typeLine(`[${index + 1}] ${option}`);
+      }
+      await typeLine("Selecciona una opción para continuar...", "hint-line");
+      renderOptions(question.options);
+      acceptingAnswers = true;
+    }
+
+    async function finalizeMission() {
+      await typeLine("Procesando resultados...");
+      await typeLine(`Puntuación final: ${score} puntos de ${questions.length * 10}`, "system-line");
+      const feedback =
+        score >= 120
+          ? "Excelente. Estás listo para descifrar amenazas avanzadas."
+          : score >= 80
+          ? "Buen trabajo. Sigue profundizando: las comunicaciones seguras no perdonan descuidos."
+          : "Inicio prometedor. Las siguientes misiones pondrán a prueba tu resiliencia."
+      await typeLine(feedback, "accent");
+      await typeLine("La inteligencia indica que los próximos módulos incluirán escenarios reales e incidentes históricos. Prepárate.", "hint-line");
+      await typeLine("Fin del briefing inicial. Cierra la terminal o reinicia para volver a intentarlo.", "system-line");
+      acceptingAnswers = false;
+    }
+
+    let audioContext;
+    let ambientNodes = [];
+    let ambientGain = null;
+    let ambientFilter = null;
+    let ambientPlaying = false;
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+          console.warn("AudioContext no disponible", error);
+          return null;
+        }
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playBeep(frequency, duration) {
+      const context = ensureAudioContext();
+      if (!context) return;
+
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+      const now = context.currentTime;
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(now + duration + 0.05);
+    }
+
+    function startAmbient() {
+      const context = ensureAudioContext();
+      if (!context) return;
+
+      stopAmbient(true);
+
+      ambientGain = context.createGain();
+      ambientGain.gain.setValueAtTime(0.0001, context.currentTime);
+      ambientGain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 1);
+
+      ambientFilter = context.createBiquadFilter();
+      ambientFilter.type = "lowpass";
+      ambientFilter.frequency.value = 900;
+      ambientFilter.Q.value = 6;
+
+      ambientGain.connect(ambientFilter);
+      ambientFilter.connect(context.destination);
+
+      const baseFrequencies = [92, 141, 207];
+      ambientNodes = baseFrequencies.map((freq) => {
+        const osc = context.createOscillator();
+        osc.type = "sawtooth";
+        osc.frequency.value = freq;
+
+        const lfo = context.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = Math.random() * 0.15 + 0.05;
+
+        const lfoGain = context.createGain();
+        lfoGain.gain.value = freq * 0.07;
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+
+        const amp = context.createGain();
+        amp.gain.value = 0.12 / baseFrequencies.length;
+
+        osc.connect(amp);
+        amp.connect(ambientGain);
+
+        osc.start();
+        lfo.start();
+
+        return { osc, lfo, lfoGain, amp };
+      });
+
+      ambientPlaying = true;
+      ambientToggle.textContent = "Silenciar ambiente";
+      ambientToggle.setAttribute("aria-pressed", "true");
+    }
+
+    function stopAmbient(immediate = false) {
+      if (!audioContext || (!ambientGain && ambientNodes.length === 0)) {
+        return;
+      }
+
+      const context = audioContext;
+      const now = context.currentTime;
+      const ramp = immediate ? 0.1 : 0.6;
+
+      if (ambientGain) {
+        ambientGain.gain.cancelScheduledValues(now);
+        ambientGain.gain.setValueAtTime(Math.max(ambientGain.gain.value, 0.0001), now);
+        ambientGain.gain.exponentialRampToValueAtTime(0.0001, now + ramp);
+      }
+
+      ambientNodes.forEach(({ osc, lfo }) => {
+        try {
+          osc.stop(now + ramp);
+        } catch (error) {}
+        try {
+          lfo.stop(now + ramp);
+        } catch (error) {}
+      });
+
+      setTimeout(() => {
+        ambientNodes.forEach(({ amp, lfoGain }) => {
+          try {
+            amp.disconnect();
+          } catch (error) {}
+          try {
+            lfoGain.disconnect();
+          } catch (error) {}
+        });
+        ambientNodes = [];
+        if (ambientGain) {
+          try {
+            ambientGain.disconnect();
+          } catch (error) {}
+        }
+        if (ambientFilter) {
+          try {
+            ambientFilter.disconnect();
+          } catch (error) {}
+        }
+        ambientGain = null;
+        ambientFilter = null;
+      }, ramp * 1000 + 200);
+
+      ambientToggle.textContent = "Activar ambiente";
+      ambientToggle.setAttribute("aria-pressed", "false");
+      ambientPlaying = false;
+    }
+
+    function toggleAmbient() {
+      const context = ensureAudioContext();
+      if (!context) {
+        ambientToggle.disabled = true;
+        ambientToggle.textContent = "Audio no disponible";
+        ambientToggle.setAttribute("aria-pressed", "false");
+        return;
+      }
+
+      if (ambientPlaying) {
+        stopAmbient();
+      } else {
+        startAmbient();
+      }
+    }
+
+    function handleKeyPress(event) {
+      if (!acceptingAnswers) return;
+      const key = event.key;
+      if (["1", "2", "3"].includes(key)) {
+        const index = parseInt(key, 10) - 1;
+        handleAnswer(index);
+      }
+    }
+
+    async function runIntro() {
+      for (const message of introMessages) {
+        await typeLine(message);
+      }
+      await typeLine(
+        "Aviso: Esto es solo el calentamiento. Las siguientes fases profundizarán en ataques reales, protocolos críticos y respuesta a incidentes.",
+        "hint-line"
+      );
+      await typeLine("Pulsa cualquier opción para iniciar la transmisión de conocimiento...", "accent");
+      setTimeout(() => {
+        presentQuestion();
+      }, 600);
+    }
+
+    window.addEventListener("keydown", handleKeyPress);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateScoreDisplay();
+      updateProgressBar();
+      ambientToggle.addEventListener("click", toggleAmbient);
+      runIntro();
+      terminal.focus();
+    });
+  </script>
+</body>
+</html>
