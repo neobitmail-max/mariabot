@@ -1,0 +1,405 @@
+<div class="fran-adventure" data-game>
+  <div class="fran-field">
+    <div class="fran-sky"></div>
+    <div class="fran-ground"></div>
+
+    <div class="fran-station" data-index="0" style="--top:12%;--left:20%;">
+      <div class="fran-station__label">Base 1</div>
+    </div>
+    <div class="fran-station" data-index="1" style="--top:28%;--left:70%;">
+      <div class="fran-station__label">Base 2</div>
+    </div>
+    <div class="fran-station" data-index="2" style="--top:50%;--left:40%;">
+      <div class="fran-station__label">Base 3</div>
+    </div>
+    <div class="fran-station" data-index="3" style="--top:65%;--left:75%;">
+      <div class="fran-station__label">Base 4</div>
+    </div>
+    <div class="fran-station" data-index="4" style="--top:82%;--left:25%;">
+      <div class="fran-station__label">Base 5</div>
+    </div>
+
+    <svg class="fran-path" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <polyline points="20,15 70,30 40,50 75,65 25,85" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"></polyline>
+    </svg>
+
+    <div class="fran-character" id="fran-character">
+      <div class="fran-character__body">
+        <div class="fran-character__head"></div>
+        <div class="fran-character__face">😄</div>
+      </div>
+    </div>
+
+    <div class="fran-bed" aria-hidden="true">
+      <div class="fran-bed__pillow"></div>
+      <div class="fran-bed__blanket"></div>
+    </div>
+  </div>
+
+  <div class="fran-panel">
+    <h2>Ruta épica de Fran</h2>
+    <p class="fran-panel__intro">
+      Cinco estaciones base, dos premios tentadores (¡chocolate o plátano!), y un héroe minúsculo que no teme a los manuales de ingeniería.
+    </p>
+    <button class="fran-panel__button" id="fran-start">Comenzar aventura</button>
+    <div class="fran-panel__question" id="fran-question" hidden>
+      <div class="fran-panel__station" id="fran-station-label"></div>
+      <p class="fran-panel__text" id="fran-question-text"></p>
+      <p class="fran-panel__hint">Responde con estilo para acercarte al premio. Fran confiesa que, si gana el chocolate, comparte... a veces.</p>
+    </div>
+    <div class="fran-panel__final" id="fran-final" hidden>
+      <p>Fran llegó a la cama, se tiró como tronco y murmuró: “¿Quién iba a pensar que estudiar manuales da tanto sueño?”</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .fran-adventure {
+    --field-size: min(480px, 80vw);
+    font-family: "Fredoka", "Comic Neue", "Segoe UI", sans-serif;
+    color: #1d3557;
+    display: grid;
+    gap: 1.5rem;
+    justify-content: center;
+    align-items: start;
+    padding: 1.5rem 1rem;
+    background: linear-gradient(180deg, rgba(241,250,238,0.9) 0%, rgba(241,250,238,0.5) 100%);
+    border-radius: 1.25rem;
+    box-shadow: 0 15px 40px rgba(29,53,87,0.08);
+  }
+
+  @media (min-width: 768px) {
+    .fran-adventure {
+      grid-template-columns: minmax(260px, var(--field-size)) minmax(260px, 1fr);
+      align-items: stretch;
+    }
+  }
+
+  .fran-field {
+    position: relative;
+    width: var(--field-size);
+    aspect-ratio: 1 / 1;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    background: #8ecae6;
+    border: 4px solid rgba(230,57,70,0.6);
+    isolation: isolate;
+  }
+
+  .fran-sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(142,202,230,0.9) 0%, rgba(33,158,188,0.9) 45%, rgba(33,158,188,0.4) 100%);
+    z-index: 0;
+  }
+
+  .fran-ground {
+    position: absolute;
+    inset: 45% 0 0;
+    background: repeating-linear-gradient(45deg, #a8dadc 0 20px, #f1faee 20px 40px);
+    z-index: 0;
+  }
+
+  .fran-path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .fran-station {
+    position: absolute;
+    top: var(--top);
+    left: var(--left);
+    width: clamp(48px, 12vw, 64px);
+    aspect-ratio: 1 / 1;
+    border-radius: 999px;
+    background: #f1faee;
+    border: 3px solid #e63946;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 6px 12px rgba(230,57,70,0.15);
+  }
+
+  .fran-station__label {
+    font-size: clamp(0.7rem, 2vw, 0.9rem);
+    text-align: center;
+    font-weight: 700;
+    color: #e63946;
+  }
+
+  .fran-character {
+    position: absolute;
+    top: 12%;
+    left: 20%;
+    width: clamp(40px, 10vw, 56px);
+    aspect-ratio: 0.7/1;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    transition: transform 0.8s ease, top 1.4s ease, left 1.4s ease;
+  }
+
+  .fran-character__body {
+    width: 100%;
+    height: 100%;
+    background: #ffb703;
+    border-radius: 40% 40% 35% 35%;
+    border: 3px solid rgba(230,57,70,0.35);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fran-character__head {
+    position: absolute;
+    top: -32%;
+    left: 50%;
+    width: 70%;
+    aspect-ratio: 1/1;
+    background: #ffd166;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    border: 3px solid rgba(29,53,87,0.25);
+  }
+
+  .fran-character__face {
+    position: absolute;
+    top: -25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+  }
+
+  .fran-bed {
+    position: absolute;
+    bottom: 6%;
+    right: 10%;
+    width: clamp(80px, 18vw, 120px);
+    height: clamp(45px, 10vw, 70px);
+    background: #e5e5e5;
+    border-radius: 0.8rem;
+    border: 3px solid rgba(29,53,87,0.25);
+    z-index: 1;
+    box-shadow: inset 0 -10px 0 rgba(29,53,87,0.1);
+  }
+
+  .fran-bed__pillow {
+    position: absolute;
+    top: 12%;
+    right: 12%;
+    width: 30%;
+    height: 45%;
+    border-radius: 0.5rem;
+    background: #f1faee;
+  }
+
+  .fran-bed__blanket {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 55%;
+    background: linear-gradient(90deg, #457b9d, #1d3557);
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+  }
+
+  .fran-panel {
+    background: rgba(255,255,255,0.85);
+    border-radius: 1.25rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 2px solid rgba(29,53,87,0.15);
+    box-shadow: 0 10px 25px rgba(29,53,87,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .fran-panel h2 {
+    font-size: clamp(1.3rem, 4vw, 2rem);
+    margin: 0;
+  }
+
+  .fran-panel__intro {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .fran-panel__button {
+    align-self: start;
+    padding: 0.6rem 1.2rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    background: #e63946;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .fran-panel__button:hover,
+  .fran-panel__button:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(230,57,70,0.4);
+  }
+
+  .fran-panel__button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .fran-panel__question {
+    border-top: 2px dashed rgba(230,57,70,0.4);
+    padding-top: 1rem;
+  }
+
+  .fran-panel__station {
+    font-weight: 700;
+    color: #e63946;
+    margin-bottom: 0.5rem;
+  }
+
+  .fran-panel__text {
+    min-height: 4.5ch;
+    font-size: 1rem;
+    line-height: 1.5;
+    font-family: "Comic Neue", "Segoe UI", sans-serif;
+  }
+
+  .fran-panel__hint {
+    font-size: 0.85rem;
+    color: rgba(29,53,87,0.7);
+    margin: 0.5rem 0 0;
+  }
+
+  .fran-panel__final {
+    background: rgba(141, 153, 174, 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(69, 123, 157, 0.3);
+  }
+
+  @media (max-width: 480px) {
+    .fran-panel__hint {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  (function(){
+    const container = document.querySelector('[data-game]');
+    if(!container) return;
+
+    const character = container.querySelector('#fran-character');
+    const stations = [...container.querySelectorAll('.fran-station')];
+    const startButton = container.querySelector('#fran-start');
+    const questionWrap = container.querySelector('#fran-question');
+    const questionText = container.querySelector('#fran-question-text');
+    const stationLabel = container.querySelector('#fran-station-label');
+    const finalMessage = container.querySelector('#fran-final');
+
+    const questions = [
+      {
+        title: 'Base 1: Café con risas',
+        text: 'Fran, experto en siestas express, pregunta: ¿cuántos cafés son necesarios antes de admitir que el premio real ya es el chocolate? A) Uno. B) Dos. C) Ninguno, la risa es la cafeína oficial.'
+      },
+      {
+        title: 'Base 2: Entrenamiento aeróbico',
+        text: 'Mientras Fran hace jumping jacks del tamaño de una hormiga, cuestiona: ¿Qué pesa más, un kilo de plátanos o un kilo de chistes malos? Spoiler: ¡uno te alimenta y el otro te da dolor de barriga de tanto reír!'
+      },
+      {
+        title: 'Base 3: Risas reglamentarias',
+        text: 'Manual de protocolo humorístico, sección 3.1: Si Fran patenta una carcajada de 120 decibelios, ¿cuántos vecinos vienen a pedir chocolate “para investigar el sonido”? Fran cree que todos, pero acepta apuestas.'
+      },
+      {
+        title: 'Base 4: Ingeniería del plátano',
+        text: 'Consultando el "Manual de flexión de frutas avanzadas": Si un plátano se curva 30° bajo 5 N·m de torque cómico, ¿cuántos Newtons de risa se necesitan para enderezarlo sin perder la cáscara? Fran sólo sabe que la unidad oficial es “ja-ja”.'
+      },
+      {
+        title: 'Base 5: Termodinámica chocolatosa',
+        text: 'Extracto del manual de transferencia de calor postre-edición: Al abrazar una tableta de chocolate a 310 K, ¿cuántos segundos tardará en derretirse si Fran no deja de cantar baladas de los 90? Datos faltantes, pero se acepta solución con diagramas de fase y ritmo desafinado.'
+      }
+    ];
+
+    const positions = stations.map(station => ({
+      top: station.style.getPropertyValue('--top'),
+      left: station.style.getPropertyValue('--left')
+    }));
+
+    const initialPosition = positions[0] || { top: '50%', left: '50%' };
+    character.style.top = initialPosition.top;
+    character.style.left = initialPosition.left;
+    let currentPosition = { ...initialPosition };
+
+    const sleepPosition = { top: '88%', left: '82%' };
+
+    let moving = false;
+
+    function moveTo(position) {
+      return new Promise(resolve => {
+        if(position.top === currentPosition.top && position.left === currentPosition.left) {
+          resolve();
+          return;
+        }
+        function handleTransitionEnd(event) {
+          if(event.target !== character) return;
+          character.removeEventListener('transitionend', handleTransitionEnd);
+          currentPosition = { ...position };
+          resolve();
+        }
+        character.addEventListener('transitionend', handleTransitionEnd);
+        requestAnimationFrame(() => {
+          character.style.top = position.top;
+          character.style.left = position.left;
+        });
+      });
+    }
+
+    function typewriter(text) {
+      questionText.textContent = '';
+      let index = 0;
+      const speed = 25;
+      return new Promise(resolve => {
+        const interval = setInterval(() => {
+          questionText.textContent = text.slice(0, index++);
+          if(index > text.length) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, speed);
+      });
+    }
+
+    async function startAdventure() {
+      if(moving) return;
+      moving = true;
+      startButton.disabled = true;
+      questionWrap.hidden = false;
+      finalMessage.hidden = true;
+
+      for(let i = 0; i < positions.length; i++) {
+        stationLabel.textContent = questions[i].title;
+        await moveTo(positions[i]);
+        await typewriter(questions[i].text);
+        await new Promise(resolve => setTimeout(resolve, 900));
+      }
+
+      stationLabel.textContent = 'Meta: la cama del héroe';
+      await moveTo(sleepPosition);
+      await typewriter('Fran anunció: "Declaro victoria por agotamiento. Chocolate a la izquierda, plátano a la derecha, y yo en modo nap."');
+      finalMessage.hidden = false;
+      moving = false;
+      startButton.disabled = false;
+      startButton.textContent = 'Repetir aventura';
+    }
+
+    startButton.addEventListener('click', startAdventure);
+  })();
+</script>
